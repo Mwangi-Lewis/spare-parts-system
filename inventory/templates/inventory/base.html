@@ -59,8 +59,25 @@
   <header>
     <h1>Computer Spare Parts Management System</h1>
     <nav>
-      <a href="{% url 'product_list' %}">Catalogue</a>
-      <a href="/admin/">Admin</a>
+      {% if user.is_authenticated %}
+        <span style="font-size:13px; color:#a8c0dd;">
+          {{ user.username }} &middot; {{ user.role }}
+        </span>
+        <a href="{% url 'product_list' %}">Catalogue</a>
+        <a href="{% url 'compatibility_check' %}">Compatibility</a>
+        {% if user.role == 'Admin' %}
+          <a href="/admin/">Admin</a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit"
+                  style="background:none; border:none; color:#dce7f5;
+                         font-size:14px; cursor:pointer; margin-left:20px;
+                         padding:0; font-family:inherit;">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}">Sign in</a>
+      {% endif %}
     </nav>
   </header>
   <div class="container">

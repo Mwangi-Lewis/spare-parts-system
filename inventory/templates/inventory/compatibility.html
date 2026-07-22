@@ -1,0 +1,90 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Compatibility Check{% endblock %}
+
+{% block content %}
+  <h2>Compatibility Check</h2>
+  <p class="muted" style="margin-bottom:18px;">
+    Select components to verify they will work together before selling.
+  </p>
+
+  <div class="card">
+    <form method="get">
+      <input type="hidden" name="check" value="1">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;">
+        {% for group in groups %}
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600;
+                          margin-bottom:5px; color:#1f3a5f;">
+              {{ group.name }}
+            </label>
+            <select name="{{ group.name }}" style="width:100%;">
+              <option value="">— none selected —</option>
+              {% for p in group.products %}
+                <option value="{{ p.id }}"
+                  {% if p.id|stringformat:"s" == group.selected %}selected{% endif %}>
+                  {{ p.brand }} {{ p.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:18px;">
+        <button type="submit">Check compatibility</button>
+        <a href="{% url 'compatibility_check' %}" class="btn"
+           style="background:#5c6673;">Clear</a>
+      </div>
+    </form>
+  </div>
+
+  {% if result %}
+    {% if result.compatible %}
+      <div class="card" style="border-left:5px solid #2e9e5b; background:#f2fbf5;">
+        <h3 style="color:#1a6b3c; font-size:18px; margin-bottom:6px;">
+          ✓ Compatible
+        </h3>
+        <p class="muted">
+          These components are compatible. Estimated draw:
+          <strong>{{ result.total_wattage }}W</strong>.
+        </p>
+      </div>
+    {% else %}
+      <div class="card" style="border-left:5px solid #c0392b; background:#fdf3f1;">
+        <h3 style="color:#a33; font-size:18px; margin-bottom:10px;">
+          ✕ Not compatible
+        </h3>
+        <ul style="margin-left:18px;">
+          {% for error in result.errors %}
+            <li style="margin-bottom:6px; color:#7a2e14;">{{ error }}</li>
+          {% endfor %}
+        </ul>
+        <p class="muted" style="margin-top:10px;">
+          Estimated draw: <strong>{{ result.total_wattage }}W</strong>.
+        </p>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <h3 style="font-size:15px; margin-bottom:10px;">Selected components</h3>
+      <table>
+        <thead>
+          <tr><th>Category</th><th>Part</th><th>Specifications</th></tr>
+        </thead>
+        <tbody>
+          {% for p in selected_products %}
+            <tr>
+              <td>{{ p.category.name }}</td>
+              <td>{{ p.brand }} {{ p.name }}</td>
+              <td class="specs">
+                {% for key, value in p.attributes.items %}
+                  {{ key }}: {{ value }}{% if not forloop.last %} &middot; {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}
