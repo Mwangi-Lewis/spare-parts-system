@@ -1,0 +1,65 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Catalogue{% endblock %}
+
+{% block content %}
+  <h2>Parts Catalogue</h2>
+
+  <form method="get" class="search-bar">
+    <input type="text" name="q" placeholder="Search by name or brand..."
+           value="{{ query }}">
+    <select name="category">
+      <option value="">All categories</option>
+      {% for c in categories %}
+        <option value="{{ c.name }}"
+          {% if c.name == selected_category %}selected{% endif %}>
+          {{ c.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Search</button>
+    <a href="{% url 'product_list' %}" class="btn"
+       style="background:#5c6673;">Reset</a>
+  </form>
+
+  <p class="muted">{{ products|length }} part{{ products|length|pluralize }} found</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Brand</th>
+        <th>Name</th>
+        <th>Specifications</th>
+        <th>Price (KES)</th>
+        <th>In stock</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+        <tr>
+          <td>{{ product.category.name }}</td>
+          <td>{{ product.brand }}</td>
+          <td>{{ product.name }}</td>
+          <td class="specs">
+            {% for key, value in product.attributes.items %}
+              {{ key }}: {{ value }}{% if not forloop.last %} &middot; {% endif %}
+            {% endfor %}
+          </td>
+          <td>{{ product.price }}</td>
+          <td>{{ product.stock_quantity }}</td>
+          <td>
+            {% if product.is_low_stock %}
+              <span class="badge badge-low">Low stock</span>
+            {% else %}
+              <span class="badge badge-ok">In stock</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">No parts match your search.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
