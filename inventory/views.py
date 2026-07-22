@@ -2,6 +2,10 @@ from django.shortcuts import render
 from .models import Product, Category
 from django.contrib.auth.decorators import login_required
 from .compatibility import check_compatibility
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
+from django.db import transaction
+from .models import SerialNumber, Sale
 
 
 SOCKETS_WITH_IMAGES = {"AM5", "LGA1700"}
@@ -91,3 +95,66 @@ def compatibility_check(request):
         "result": result,
         "socket_visual": socket_visual,
     })
+    
+@login_required
+def checkout(request):
+    """Sell parts. Each sale consumes one serial-numbered unit."""
+    products = Product.objects.select_related("category").order_by(
+        "category__name", "brand"
+    )
+
+    rows = []
+    for product in products:
+        available = product.serial_numbers.filter(
+            status=SerialNumber.IN_STOCK
+        ).count()
+        rows.append({"product": product, "available": available})
+
+    recent_sales = Sale.objects.select_related(
+        "serial_number__product", "user"
+    ).order_by("-sale_date")[:8]
+
+    return render(request, "inventory/checkout.html", {
+        "rows": rows,
+        "recent_sales": recent_sales,
+    })
+
+
+@login_required
+def sell_product(request, product_id):
+    """Consume one serial number, mark it Sold, decrement stock, record the sale."""
+    if request.method != "POST":
+        return redirect("checkout")
+
+    product = get_object_or_404(Product, id=product_id)
+
+    with transaction.atomic():
+        serial = product.serial_numbers.filter(
+            status=SerialNumber.IN_STOCK
+        ).order_by("serial_code").first()
+
+        if serial is None:
+            messages.error(
+                request,
+                f"No units of {product.brand} {product.name} are available."
+            )
+            return redirect("checkout")
+
+        serial.status = SerialNumber.SOLD
+        serial.save()
+
+        product.stock_quantity = max(0, product.stock_quantity - 1)
+        product.save()
+
+        Sale.objects.create(
+            serial_number=serial,
+            user=request.user,
+            sale_price=product.price,
+        )
+
+    messages.success(
+        request,
+        f"Sold {product.brand} {product.name} — serial {serial.serial_code} "
+        f"marked as Sold. {product.stock_quantity} left in stock."
+    )
+    return redirect("checkout")

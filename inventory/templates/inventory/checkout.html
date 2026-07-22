@@ -1,0 +1,81 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+  <h2>Checkout</h2>
+  <p class="muted" style="margin-bottom:18px;">
+    Each sale consumes one serial-numbered unit from stock.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Part</th>
+        <th>Price (KES)</th>
+        <th>Units available</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.product.category.name }}</td>
+          <td>{{ row.product.brand }} {{ row.product.name }}</td>
+          <td>{{ row.product.price }}</td>
+          <td>
+            {% if row.available %}
+              {{ row.available }}
+            {% else %}
+              <span class="badge badge-low">Out of stock</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.available %}
+              <form method="post"
+                    action="{% url 'sell_product' row.product.id %}"
+                    style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" style="padding:5px 14px; font-size:13px;">
+                  Sell one
+                </button>
+              </form>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3 style="font-size:17px; color:#1f3a5f; margin:28px 0 12px;">Recent sales</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Part</th>
+        <th>Serial number</th>
+        <th>Sold by</th>
+        <th>Price (KES)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sale in recent_sales %}
+        <tr>
+          <td>{{ sale.sale_date|date:"d M Y, H:i" }}</td>
+          <td>
+            {{ sale.serial_number.product.brand }}
+            {{ sale.serial_number.product.name }}
+          </td>
+          <td><code>{{ sale.serial_number.serial_code }}</code></td>
+          <td>{{ sale.user.username }}</td>
+          <td>{{ sale.sale_price }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">No sales recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
