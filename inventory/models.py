@@ -65,7 +65,7 @@ class SerialNumber(models.Model):
     )
 
     def __str__(self):
-        return f"{self.serial_code} ({self.status})"
+        return f"{self.product.brand} {self.product.name} — {self.serial_code} ({self.status})"
 
 
 class Sale(models.Model):
@@ -80,4 +80,5 @@ class Sale(models.Model):
     sale_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"Sale #{self.id} — {self.serial_number.serial_code}"
+        product = self.serial_number.product
+        return f"Sale #{self.id} — {product.brand} {product.name} ({self.serial_number.serial_code})"
