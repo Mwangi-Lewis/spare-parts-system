@@ -3,6 +3,9 @@ from .models import Product, Category
 from django.contrib.auth.decorators import login_required
 from .compatibility import check_compatibility
 
+
+SOCKETS_WITH_IMAGES = {"AM5", "LGA1700"}
+
 @login_required
 def product_list(request):
     """Catalogue page with search and category filtering."""
@@ -50,11 +53,41 @@ def compatibility_check(request):
                 selected_products.append(product)
 
     result = None
+    socket_visual = None
+
     if request.GET.get("check") and selected_products:
         result = check_compatibility(selected_products)
+
+        # Build the visual comparison only for a genuine socket mismatch
+        if not result["compatible"]:
+            cpu = next(
+                (p for p in selected_products if p.category.name == "CPU"), None
+            )
+            board = next(
+                (p for p in selected_products if p.category.name == "Motherboard"),
+                None,
+            )
+            if cpu and board:
+                cpu_socket = cpu.attributes.get("socket")
+                board_socket = board.attributes.get("socket")
+                mismatch = cpu_socket != board_socket
+                have_images = (
+                    cpu_socket in SOCKETS_WITH_IMAGES
+                    and board_socket in SOCKETS_WITH_IMAGES
+                )
+                if mismatch and have_images:
+                    socket_visual = {
+                        "cpu": cpu,
+                        "board": board,
+                        "cpu_socket": cpu_socket,
+                        "board_socket": board_socket,
+                        "cpu_image": f"inventory/img/cpu_{cpu_socket.lower()}.jpg",
+                        "board_image": f"inventory/img/socket_{board_socket.lower()}.jpg",
+                    }
 
     return render(request, "inventory/compatibility.html", {
         "groups": groups,
         "selected_products": selected_products,
         "result": result,
+        "socket_visual": socket_visual,
     })
