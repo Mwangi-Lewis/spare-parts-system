@@ -1,0 +1,141 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <h2>Dashboard</h2>
+  <p class="muted" style="margin-bottom:18px;">
+    Overview of stock levels, low-stock alerts and recent sales.
+  </p>
+
+  <!-- headline tiles -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+              gap:16px; margin-bottom:24px;">
+
+    <div class="card" style="text-align:center; padding:18px;">
+      <div style="font-size:30px; font-weight:700; color:#1f3a5f;">
+        {{ total_products }}
+      </div>
+      <div class="muted" style="font-size:13px;">Parts in catalogue</div>
+    </div>
+
+    <div class="card" style="text-align:center; padding:18px;">
+      <div style="font-size:30px; font-weight:700; color:#1f3a5f;">
+        {{ units_available }}
+      </div>
+      <div class="muted" style="font-size:13px;">Units available</div>
+    </div>
+
+    <div class="card" style="text-align:center; padding:18px;">
+      <div style="font-size:30px; font-weight:700; color:#1a6b3c;">
+        {{ units_sold }}
+      </div>
+      <div class="muted" style="font-size:13px;">Units sold</div>
+    </div>
+
+    <div class="card" style="text-align:center; padding:18px;">
+      <div style="font-size:30px; font-weight:700;
+                  color:{% if low_stock %}#c0392b{% else %}#1f3a5f{% endif %};">
+        {{ low_stock|length }}
+      </div>
+      <div class="muted" style="font-size:13px;">Low-stock alerts</div>
+    </div>
+
+    <div class="card" style="text-align:center; padding:18px;">
+      <div style="font-size:24px; font-weight:700; color:#1f3a5f;">
+        {{ revenue }}
+      </div>
+      <div class="muted" style="font-size:13px;">Revenue (KES)</div>
+    </div>
+  </div>
+
+  <!-- low stock -->
+  <h3 style="font-size:17px; color:#1f3a5f; margin-bottom:10px;">
+    Low stock — needs restocking
+  </h3>
+  <table style="margin-bottom:26px;">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Part</th>
+        <th>In stock</th>
+        <th>Threshold</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in low_stock %}
+        <tr>
+          <td>{{ product.category.name }}</td>
+          <td>{{ product.brand }} {{ product.name }}</td>
+          <td>{{ product.stock_quantity }}</td>
+          <td>{{ product.low_stock_threshold }}</td>
+          <td><span class="badge badge-low">Low stock</span></td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" class="muted">
+            All parts are above their stock threshold.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- stock by category -->
+  <h3 style="font-size:17px; color:#1f3a5f; margin-bottom:10px;">
+    Stock by category
+  </h3>
+  <table style="margin-bottom:26px;">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Different parts</th>
+        <th>Total units in stock</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for category in by_category %}
+        <tr>
+          <td>{{ category.name }}</td>
+          <td>{{ category.part_count }}</td>
+          <td>{{ category.unit_count|default:0 }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- recent sales -->
+  <h3 style="font-size:17px; color:#1f3a5f; margin-bottom:10px;">
+    Recent sales
+  </h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Part</th>
+        <th>Serial number</th>
+        <th>Sold by</th>
+        <th>Price (KES)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sale in recent_sales %}
+        <tr>
+          <td>{{ sale.sale_date|date:"d M Y, H:i" }}</td>
+          <td>{{ sale.serial_number.product.category.name }}</td>
+          <td>
+            {{ sale.serial_number.product.brand }}
+            {{ sale.serial_number.product.name }}
+          </td>
+          <td><code>{{ sale.serial_number.serial_code }}</code></td>
+          <td>{{ sale.user.username }}</td>
+          <td>{{ sale.sale_price }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">No sales recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

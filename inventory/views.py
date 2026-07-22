@@ -6,6 +6,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
 from .models import SerialNumber, Sale
+from django.db.models import Sum, Count, F
 
 
 SOCKETS_WITH_IMAGES = {"AM5", "LGA1700"}
@@ -158,3 +159,49 @@ def sell_product(request, product_id):
         f"marked as Sold. {product.stock_quantity} left in stock."
     )
     return redirect("checkout")
+
+@login_required
+def dashboard(request):
+    """Summary of stock levels, low-stock items and recent sales."""
+    products = Product.objects.select_related("category")
+
+    # --- headline figures ---
+    total_products = products.count()
+    total_units = products.aggregate(total=Sum("stock_quantity"))["total"] or 0
+    units_sold = SerialNumber.objects.filter(status=SerialNumber.SOLD).count()
+    units_available = SerialNumber.objects.filter(
+        status=SerialNumber.IN_STOCK
+    ).count()
+
+    # --- low stock (threshold comparison done in the database) ---
+    low_stock = products.filter(
+        stock_quantity__lte=F("low_stock_threshold")
+    ).order_by("stock_quantity", "category__name")
+
+    # --- stock grouped by category ---
+    by_category = (
+        Category.objects
+        .annotate(
+            part_count=Count("products", distinct=True),
+            unit_count=Sum("products__stock_quantity"),
+        )
+        .order_by("name")
+    )
+
+    # --- sales ---
+    recent_sales = Sale.objects.select_related(
+        "serial_number__product__category", "user"
+    ).order_by("-sale_date")[:8]
+
+    revenue = Sale.objects.aggregate(total=Sum("sale_price"))["total"] or 0
+
+    return render(request, "inventory/dashboard.html", {
+        "total_products": total_products,
+        "total_units": total_units,
+        "units_sold": units_sold,
+        "units_available": units_available,
+        "low_stock": low_stock,
+        "by_category": by_category,
+        "recent_sales": recent_sales,
+        "revenue": revenue,
+    })

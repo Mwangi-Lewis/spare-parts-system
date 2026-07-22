@@ -67,6 +67,7 @@
         <span style="font-size:13px; color:#a8c0dd;">
           {{ user.username }} &middot; {{ user.role }}
         </span>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
         <a href="{% url 'product_list' %}">Catalogue</a>
         <a href="{% url 'compatibility_check' %}">Compatibility</a>
         <a href="{% url 'checkout' %}">Checkout</a>

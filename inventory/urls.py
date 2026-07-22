@@ -10,4 +10,5 @@ urlpatterns = [
     path("compatibility/", views.compatibility_check, name="compatibility_check"),
     path("checkout/", views.checkout, name="checkout"),
     path("checkout/<int:product_id>/sell/", views.sell_product, name="sell_product"),
+    path("dashboard/", views.dashboard, name="dashboard"),
 ]
